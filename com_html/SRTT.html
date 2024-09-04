@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serial Reaction Time Task</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000000; /* Cor de fundo preta */
+            color: #ffffff; /* Texto branco para contraste */
+            position: relative;
+            overflow: hidden;
+        }
+        .center-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffffff; /* Texto branco */
+        }
+        .history {
+            max-height: 300px;
+            overflow-y: auto;
+            border-left: 2px solid #ffffff; /* Borda branca */
+            padding-left: 20px;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: #ffffff; /* Garantir que o texto do histórico seja visível no fundo preto */
+        }
+        .history-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffffff; /* Texto branco */
+        }
+        .history-item {
+            font-size: 1em;
+            margin-bottom: 5px;
+            color: #ffffff; /* Texto branco */
+        }
+        #copyButton {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #copyButton:hover {
+            background-color: #0056b3;
+        }
+        .cross {
+            font-size: 4em;
+            color: red;
+            display: none;
+            transform: rotate(90deg); /* Gira a cruz 90 graus */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(90deg); /* Centraliza e gira a cruz */
+        }
+        .attempt-text {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.5em;
+            color: #ffffff; /* Texto branco */
+        }
+    </style>
+</head>
+<body>
+    <div class="center-text" id="center-text">Prepare-se</div>
+    <div class="center-text cross" id="cross-text">&#10006;</div>
+    <div class="center-text" id="sequence-text"></div>
+    <div class="center-text" id="wait-text"></div>
+    <div class="history" id="history">
+        <div class="history-title">Histórico</div>
+    </div>
+    <button id="copyButton" onclick="copyHistory()">Copiar Histórico</button>
+    <div class="attempt-text" id="attempt-text"></div> <!-- Texto da tentativa correta no canto superior esquerdo -->
+
+    <script>
+        let startTime;
+        let sequenceStarted = false;
+        let currentStep = 0;
+        let sequenceOrder = [];
+        const allKeys = ['A', 'S', 'D', 'F'];
+        const forbiddenSequences = ['ASDF', 'FDSA'];
+        let keyPresses = { 'A': false, 'S': false, 'D': false, 'F': false };
+        let attemptNumber = 1;
+
+        function showMessage(message, elementId) {
+            document.getElementById(elementId).textContent = message;
+        }
+
+        function updateHistory(reactionTime) {
+            const historyDiv = document.getElementById('history');
+            const newItem = document.createElement('div');
+            newItem.className = 'history-item';
+            newItem.textContent = `Tempo de resposta: ${reactionTime} ms`;
+            historyDiv.appendChild(newItem);
+        }
+
+        function copyHistory() {
+            const historyItems = document.querySelectorAll('.history-item');
+            let historyText = '';
+            historyItems.forEach(item => {
+                const parts = item.textContent.split(' ');
+                const responseTime = parts[3];
+                historyText += `Tempo de resposta:;${responseTime};ms\n`;
+            });
+            const textArea = document.createElement('textarea');
+            textArea.value = historyText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Histórico copiado para a área de transferência!');
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getValidSequence() {
+            let sequence;
+            do {
+                sequence = shuffleArray([...allKeys]).join('');
+            } while (forbiddenSequences.includes(sequence));
+            return sequence;
+        }
+
+        function startTest() {
+            sequenceOrder = getValidSequence();
+            showMessage('Prepare-se', 'center-text');
+            document.getElementById('attempt-text').textContent = `Tentativa: ${attemptNumber}`;
+            setTimeout(() => {
+                document.getElementById('center-text').textContent = '';
+                document.getElementById('cross-text').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('cross-text').style.display = 'none';
+                    document.getElementById('sequence-text').textContent = sequenceOrder;
+                    startTime = new Date().getTime();
+                    sequenceStarted = true;
+                    currentStep = 0;
+                    keyPresses = { 'A': false, 'S': false, 'D': false, 'F': false };
+                }, 0); // Exibe a cruz por 1 segundo
+            }, Math.random() * 3000 + 1000); // Intervalo aleatório entre 1 e 4 segundos
+        }
+
+        function endTest() {
+            const reactionTime = new Date().getTime() - startTime;
+            updateHistory(reactionTime);
+            showMessage('Espere', 'wait-text');
+            setTimeout(() => {
+                document.getElementById('wait-text').textContent = '';
+                document.getElementById('sequence-text').textContent = ''; // Limpa a sequência
+                document.getElementById('attempt-text').textContent = ''; // Limpa o texto da tentativa
+                sequenceStarted = false; // Garante que a sequência seja reiniciada corretamente
+                attemptNumber++;
+                startTest(); // Reinicia o teste imediatamente após o intervalo
+            }, 0); // 2 segundos de espera
+        }
+
+        function handleKeydown(event) {
+            if (sequenceStarted) {
+                const key = event.code.replace('Key', '');
+                if (key === sequenceOrder[currentStep]) {
+                    keyPresses[key] = true;
+                    currentStep++;
+                    if (currentStep === sequenceOrder.length) {
+                        endTest();
+                    }
+                }
+            }
+        }
+
+        function handleKeyup(event) {
+            const key = event.code.replace('Key', '');
+            if (key === 'A' || key === 'S' || key === 'D' || key === 'F') {
+                keyPresses[key] = false;
+            }
+        }
+
+        document.addEventListener('keydown', handleKeydown);
+        document.addEventListener('keyup', handleKeyup);
+
+        // Inicia a tela de preparo
+        startTest();
+    </script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apontamento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+        #initial-screen, #test-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        #initial-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #test-screen {
+            display: none;
+            position: relative;
+            text-align: center;
+        }
+        #instructions {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            height: 100px;
+            position: absolute;
+            top: 20px;
+            width: 100%;
+        }
+        .target {
+            background-color: red;
+            cursor: pointer;
+            position: absolute;
+            border-radius: 50%;
+        }
+        #result {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: left;
+        }
+        #graph-container {
+            display: none;
+            position: absolute;
+            width: 600px;
+            height: 350px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        #graph {
+            width: 100%;
+            height: 100%;
+        }
+        input {
+            margin: 5px;
+            padding: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #continue-button {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela Inicial -->
+    <div id="initial-screen">
+        <h1>Configurações</h1>
+        <label for="left-target-diameter">Diâmetro do Círculo Esquerdo (px):</label>
+        <input type="number" id="left-target-diameter" value="100"><br>
+        <label for="right-target-diameter">Diâmetro do Círculo Direito (px):</label>
+        <input type="number" id="right-target-diameter" value="50"><br>
+        <label for="distance">Distância entre os Círculos (px):</label>
+        <input type="number" id="distance" value="700"><br>
+        <button onclick="startTest()">Começar</button>
+    </div>
+
+    <!-- Tela do Teste -->
+    <div id="test-screen">
+        <div id="instructions">Clique no círculo da esquerda para começar e no círculo da esquerda o mais rápido e preciso possível!</div>
+        <div id="targets">
+            <div id="leftTarget" class="target"></div>
+            <div id="rightTarget" class="target"></div>
+        </div>
+        <div id="result"></div>
+        <div id="graph-container">
+            <div id="graph-label">Velocidade (px/seg)</div>
+            <canvas id="graph"></canvas> <!-- Canvas para o gráfico -->
+            <button id="continue-button" onclick="hideGraph()">Continuar</button>
+        </div>
+    </div>
+
+    <script>
+        let mousePositions = [];
+
+        function startTest() {
+            var leftTargetDiameter = parseInt(document.getElementById('left-target-diameter').value);
+            var rightTargetDiameter = parseInt(document.getElementById('right-target-diameter').value);
+            var distance = parseInt(document.getElementById('distance').value);
+
+            document.getElementById('initial-screen').style.display = 'none';
+            document.getElementById('test-screen').style.display = 'flex';
+
+            const leftTarget = document.getElementById('leftTarget');
+            const rightTarget = document.getElementById('rightTarget');
+            const result = document.getElementById('result');
+            const graphContainer = document.getElementById('graph-container');
+            const graph = document.getElementById('graph');
+            const continueButton = document.getElementById('continue-button');
+            let startTime, secondClickX, secondClickY;
+
+            leftTarget.style.width = `${leftTargetDiameter}px`;
+            leftTarget.style.height = `${leftTargetDiameter}px`;
+            rightTarget.style.width = `${rightTargetDiameter}px`;
+            rightTarget.style.height = `${rightTargetDiameter}px`;
+
+            const containerWidth = window.innerWidth;
+            const containerHeight = window.innerHeight;
+            const targetWidthCombined = leftTargetDiameter + rightTargetDiameter + distance;
+            const leftTargetX = (containerWidth - targetWidthCombined) / 2;
+            const rightTargetX = leftTargetX + leftTargetDiameter + distance;
+            const targetY = (containerHeight - Math.max(leftTargetDiameter, rightTargetDiameter)) / 2;
+
+            leftTarget.style.left = `${leftTargetX}px`;
+            leftTarget.style.top = `${targetY}px`;
+            rightTarget.style.left = `${rightTargetX}px`;
+            rightTarget.style.top = `${targetY}px`;
+
+            const rightTargetCenterX = rightTargetX + rightTargetDiameter / 2;
+            const rightTargetCenterY = targetY + rightTargetDiameter / 2;
+
+            leftTarget.addEventListener('click', () => {
+                startTime = new Date().getTime();
+                mousePositions = [];
+            });
+
+            document.addEventListener('mousemove', (event) => {
+                if (startTime) {
+                    const currentTime = new Date().getTime();
+                    mousePositions.push({ x: event.clientX, y: event.clientY, time: currentTime });
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                if (startTime) {
+                    const endTime = new Date().getTime();
+                    const reactionTime = endTime - startTime;
+
+                    if (reactionTime >= 200) {
+                        secondClickX = event.clientX;
+                        secondClickY = event.clientY;
+
+                        const errorRadial = Math.sqrt(
+                            Math.pow(secondClickX - rightTargetCenterX, 2) +
+                            Math.pow(secondClickY - rightTargetCenterY, 2)
+                        );
+
+                        const ID = Math.log2((distance / Math.min(leftTargetDiameter, rightTargetDiameter)) + 1);
+                        const MT = 0.2 + 0.1 * ID;
+
+                        result.innerHTML = `
+                            ID: ${ID.toFixed(2)} bits<br>
+                            <br>
+                            <strong>Erro Radial: ${errorRadial.toFixed(2)} px</strong><br>
+                            <strong>TM: ${reactionTime} ms</strong><br>
+                        `;
+
+                        drawVelocityGraph();
+                        graphContainer.style.display = 'block';
+                        continueButton.style.display = 'block';
+
+                        startTime = null;
+                    }
+                }
+            });
+        }
+
+        function drawVelocityGraph() {
+            const canvas = document.getElementById('graph');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 600;
+            canvas.height = 300;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 2;
+
+            if (mousePositions.length < 2) return;
+
+            let maxVelocity = 0;
+            let velocities = [];
+
+            for (let i = 1; i < mousePositions.length; i++) {
+                const prevPos = mousePositions[i - 1];
+                const currPos = mousePositions[i];
+
+                const dx = currPos.x - prevPos.x;
+                const dy = currPos.y - prevPos.y;
+                const dt = (currPos.time - prevPos.time) / 1000; // Tempo em segundos
+
+                const velocity = Math.sqrt(dx * dx + dy * dy) / dt; // Velocidade em pixels por segundo
+                velocities.push(velocity);
+                if (velocity > maxVelocity) maxVelocity = velocity;
+            }
+
+            const scale = Math.max(maxVelocity, 500);
+
+            // Desenhar o gráfico
+            ctx.beginPath();
+            for (let i = 0; i < velocities.length; i++) {
+                const x = (i / velocities.length) * canvas.width;
+                const y = canvas.height - (velocities[i] / scale) * canvas.height;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        function hideGraph() {
+            document.getElementById('graph-container').style.display = 'none';
+            document.getElementById('continue-button').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

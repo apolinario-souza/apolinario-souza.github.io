@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lei de Fitts - Demonstração</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative; /* Para posicionamento absoluto dentro do body */
+        }
+        #initial-screen, #test-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        #initial-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #test-screen {
+            display: none;
+            position: relative;
+            text-align: center;
+        }
+        #instructions {
+            display: flex;
+            align-items: flex-start; /* Alinha ao topo */
+            justify-content: center; /* Centraliza horizontalmente */
+            height: 100px; /* Ajuste conforme necessário */
+            position: absolute;
+            top: 20px; /* Ajuste a distância do topo se necessário */
+            width: 100%;
+        }
+        .target {
+            background-color: red;
+            cursor: pointer;
+            position: absolute;
+        }
+        #result {
+            position: absolute;
+            top: 20px; /* Ajuste conforme necessário */
+            right: 20px; /* Ajuste conforme necessário */
+            text-align: left; /* Alinha o texto à esquerda */
+        }
+        input {
+            margin: 5px;
+            padding: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela Inicial -->
+    <div id="initial-screen">
+        <h1>Configuração do Teste</h1>
+        <label for="target-width">Largura do Alvo (px):</label>
+        <input type="number" id="target-width" value="100"><br>
+        <label for="target-height">Altura do Alvo (px):</label>
+        <input type="number" id="target-height" value="500"><br>
+        <label for="distance">Distância entre os Alvos (px):</label>
+        <input type="number" id="distance" value="300"><br>
+        <button onclick="startTest()">Começar</button>
+    </div>
+
+    <!-- Tela do Teste -->
+    <div id="test-screen">
+        <div id="instructions">Clique no retângulo da direita o mais rápido possível após clicar no da esquerda!</div>
+        <div id="targets">
+            <div id="leftTarget" class="target"></div>
+            <div id="rightTarget" class="target"></div>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function startTest() {
+            // Obter os valores inseridos pelo usuário
+            var targetWidth = parseInt(document.getElementById('target-width').value);
+            var targetHeight = parseInt(document.getElementById('target-height').value);
+            var distance = parseInt(document.getElementById('distance').value);
+
+            // Configurar a tela do teste
+            document.getElementById('initial-screen').style.display = 'none';
+            document.getElementById('test-screen').style.display = 'flex';
+
+            // Configurar os alvos
+            const leftTarget = document.getElementById('leftTarget');
+            const rightTarget = document.getElementById('rightTarget');
+            const result = document.getElementById('result');
+            let startTime, endTime;
+
+            // Ajustar o estilo dos alvos
+            leftTarget.style.width = `${targetWidth}px`;
+            leftTarget.style.height = `${targetHeight}px`;
+            rightTarget.style.width = `${targetWidth}px`;
+            rightTarget.style.height = `${targetHeight}px`;
+
+            // Ajustar a distância entre os alvos
+            const targetsContainer = document.getElementById('targets');
+            const containerWidth = window.innerWidth;
+            const containerHeight = window.innerHeight;
+            const targetWidthCombined = targetWidth * 2 + distance;
+            const leftTargetX = (containerWidth - targetWidthCombined) / 2;
+            const rightTargetX = leftTargetX + targetWidth + distance;
+            const targetY = (containerHeight - targetHeight) / 2;
+
+            leftTarget.style.left = `${leftTargetX}px`;
+            leftTarget.style.top = `${targetY}px`;
+            rightTarget.style.left = `${rightTargetX}px`;
+            rightTarget.style.top = `${targetY}px`;
+
+            leftTarget.addEventListener('click', () => {
+                startTime = new Date().getTime();
+            });
+
+            rightTarget.addEventListener('click', () => {
+                if (startTime) {
+                    endTime = new Date().getTime();
+                    const reactionTime = endTime - startTime;
+
+                    // Cálculo do índice de dificuldade (ID) e tempo de movimento previsto (MT)
+                    const ID = Math.log2((distance / targetWidth) + 1);
+                    const MT = 0.2 + 0.1 * ID;
+
+                    // Cálculo do ID real baseado no tempo de movimento medido
+                    const realID = (reactionTime / 1000 - 0.2) / 0.1;
+
+                    result.innerHTML = `
+                        
+                        ID previsto: ${ID.toFixed(2)} bits<br>
+                        TM previsto: ${MT.toFixed(2)*1000} ms<br>
+                        <br>
+                        <strong>ID real: ${realID.toFixed(2)} bits</strong><br>
+                        <strong>TM real: ${reactionTime} ms</strong><br>
+                       
+                    `;
+                    startTime = null; // Reseta para uma nova tentativa
+                }
+            });
+        }
+    </script>
+</body>
+</html>

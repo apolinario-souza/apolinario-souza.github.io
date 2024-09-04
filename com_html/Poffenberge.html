@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poffenberge uncross</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000000; /* Cor de fundo preta */
+            color: #ffffff; /* Texto branco para contraste */
+            position: relative;
+            overflow: hidden;
+        }
+        .arrow {
+            font-size: 4em; /* Tamanho das setas */
+            position: absolute;
+            display: none;
+            color: #ffffff; /* Cor branca para as setas */
+        }
+        .arrow.left {
+            left: calc(50% - 30%); /* Posiciona a seta para a esquerda a 30% da largura da tela */
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .arrow.right {
+            left: calc(50% + 30%); /* Posiciona a seta para a direita a 30% da largura da tela */
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .arrow.point-left {
+            transform: rotate(180deg); /* Rotaciona a seta para apontar para a esquerda */
+        }
+        .arrow.point-right {
+            transform: rotate(0deg); /* Rotaciona a seta para apontar para a direita */
+        }
+        .center-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffffff; /* Texto branco */
+        }
+        .history {
+            max-height: 300px;
+            overflow-y: auto;
+            border-left: 2px solid #ffffff; /* Borda branca */
+            padding-left: 20px;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: #ffffff; /* Garantir que o texto do histórico seja visível no fundo preto */
+        }
+        .history-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffffff; /* Texto branco */
+        }
+        .history-item {
+            font-size: 1em;
+            margin-bottom: 5px;
+            color: #ffffff; /* Texto branco */
+        }
+        #copyButton {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #copyButton:hover {
+            background-color: #0056b3;
+        }
+        .cross {
+            font-size: 4em;
+            color: red;
+            display: none;
+            transform: rotate(90deg); /* Gira a cruz 90 graus */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(90deg); /* Centraliza e gira a cruz */
+        }
+    </style>
+</head>
+<body>
+    <div class="arrow left" id="arrow-left">&#8592;</div> <!-- Seta para a esquerda -->
+    <div class="arrow right" id="arrow-right">&#8594;</div> <!-- Seta para a direita -->
+    <div class="center-text" id="center-text">Posicione os dedos nas setas</div>
+        <div class="center-text cross" id="cross-text">+</div>
+    <div class="history" id="history">
+        <div class="history-title">Histórico</div>
+    </div>
+    <button id="copyButton" onclick="copyHistory()">Copiar Histórico</button>
+
+    <script>
+        let startTime;
+        let timeoutId;
+        let isTiming = false;
+        let attemptCount = 0;
+        let currentSide; // Atualiza para refletir o lado da seta
+        let currentDirection; // Atualiza para refletir a direção da seta
+        let arrowPointingSide; // Lado para o qual a seta está apontando
+        let fingersOnKeys = { ArrowLeft: false, ArrowRight: false };
+        let isInPosition = false;
+        let isTestActive = false;
+
+        function showMessage(message, showCross = false) {
+            document.getElementById('center-text').textContent = message;
+            document.getElementById('cross-text').style.display = showCross ? 'block' : 'none';
+        }
+
+        function checkFingersOnKeys() {
+            return fingersOnKeys.ArrowLeft && fingersOnKeys.ArrowRight;
+        }
+
+        function startTest() {
+            if (!checkFingersOnKeys()) {
+                showMessage('Posicione os dedos nas setas');
+                isInPosition = false; // Reseta o estado
+                isTestActive = false; // Reseta o estado
+                return;
+            }
+
+            showMessage('', true); // Exibe a cruz no centro
+            setTimeout(() => {
+                document.getElementById('cross-text').style.display = 'none'; // Esconde a cruz
+                const delay = Math.random() * 2000 + 1000; // Entre 1 e 3 segundos
+
+                timeoutId = setTimeout(() => {
+                    // Mostra a seta correspondente ao lado
+                    const side = Math.random() < 0.5 ? 'left' : 'right'; // Aleatoriamente escolhe o lado da seta
+                    const direction = Math.random() < 0.5 ? 'point-left' : 'point-right'; // Aleatoriamente escolhe a direção da seta
+
+                    if (side === 'left') {
+                        document.getElementById('arrow-left').style.display = 'block';
+                        document.getElementById('arrow-right').style.display = 'none';
+                        document.getElementById('arrow-left').className = `arrow left ${direction}`;
+                    } else {
+                        document.getElementById('arrow-left').style.display = 'none';
+                        document.getElementById('arrow-right').style.display = 'block';
+                        document.getElementById('arrow-right').className = `arrow right ${direction}`;
+                    }
+
+                    // Define o lado e a direção da seta
+                    currentSide = side;
+                    currentDirection = direction;
+
+                    // Define para qual lado a seta está apontando
+                    arrowPointingSide = direction === 'point-left' ? 'Esquerda' : 'Direita';
+
+                    startTime = new Date().getTime();
+                    isTiming = true;
+                }, delay);
+
+                isTestActive = true;
+            }, 1000); // Aguarda um segundo antes de iniciar o teste
+        }
+
+        function updateHistory(reactionTime) {
+            attemptCount++;
+            const historyDiv = document.getElementById('history');
+            const newItem = document.createElement('div');
+
+            // Verifica a situação e define o valor correto para "situation"
+            let situation;
+            if (currentSide === 'left' && arrowPointingSide === 'Direita') {
+                situation = 'cross';
+            } else if (currentSide === 'right' && arrowPointingSide === 'Esquerda') {
+                situation = 'cross';
+            } else {
+                situation = 'uncross';
+            }
+
+            // Corrige a descrição para o lado e direção da seta
+            const sideText = currentSide === 'left' ? 'Esquerda' : 'Direita';
+            newItem.className = 'history-item';
+            newItem.textContent = `Tentativa ${attemptCount}: ${reactionTime} ms`;
+            historyDiv.appendChild(newItem);
+        }
+
+        function copyHistory() {
+            const historyItems = document.querySelectorAll('.history-item');
+            let historyText = '';
+            historyItems.forEach(item => {
+                // Substitui ": " por "; " e "ms" por " ms;"
+                const formattedText = item.textContent
+                    .replace(': ', '; ')
+                    .replace(' ms', '; ms;');
+                historyText += formattedText + '\n';
+            });
+            const textArea = document.createElement('textarea');
+            textArea.value = historyText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Histórico copiado para a área de transferência!');
+        }
+
+        function handleKeydown(event) {
+            if (event.code === 'ArrowLeft') {
+                fingersOnKeys.ArrowLeft = true;
+            }
+            if (event.code === 'ArrowRight') {
+                fingersOnKeys.ArrowRight = true;
+            }
+
+            if (!isInPosition && checkFingersOnKeys()) {
+                isInPosition = true;
+                showMessage('', true); // Exibe a cruz antes de começar o teste
+                setTimeout(startTest, 1000); // Aguarda um segundo antes de iniciar o teste
+            }
+        }
+
+        function handleKeyup(event) {
+            if (event.code === 'ArrowLeft') {
+                fingersOnKeys.ArrowLeft = false;
+            }
+            if (event.code === 'ArrowRight') {
+                fingersOnKeys.ArrowRight = false;
+            }
+
+            // Verifica se a tecla liberada corresponde à direção da seta
+            if ((event.code === 'ArrowLeft' && currentDirection === 'point-left' && currentSide === 'right') ||
+                (event.code === 'ArrowRight' && currentDirection === 'point-right' && currentSide === 'right') ||
+                (event.code === 'ArrowLeft' && currentDirection === 'point-right' && currentSide === 'left') ||
+                (event.code === 'ArrowRight' && currentDirection === 'point-left' && currentSide === 'left')) {
+                if (isTiming) {
+                    const reactionTime = new Date().getTime() - startTime;
+                    updateHistory(reactionTime);
+                    isTiming = false;
+                    isTestActive = false;
+                    document.getElementById('arrow-left').style.display = 'none';
+                    document.getElementById('arrow-right').style.display = 'none';
+                    startTest(); // Reinicia o teste imediatamente após registrar o tempo
+                }
+            }
+        }
+
+        document.addEventListener('keydown', handleKeydown);
+        document.addEventListener('keyup', handleKeyup);
+
+        // Inicia a tela de posicionamento dos dedos
+        showMessage('Posicione os dedos nas setas');
+    </script>
+</body>
+</html>
