@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tempo de Reação Simples</title>
+    <title>Tempo de Reação de Discriminação</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -82,12 +82,12 @@
 <body>
     <div class="container">
         <div id="initialMessage" class="message">
-            Pressione a barra de espaço e solte-a o mais rápido possível, quando aparecer 'Vai'
+            Pressione a barra de espaço e solte-a o mais rápido possível, APENAS quando aparecer 'Vai'em vermelho.
             <br><br>
             <button id="startButton">Começar</button>
         </div>
         <div id="testContainer" style="display: none;">
-            <div class="message" id="message">Prepara...</div>
+            <div class="message" id="message" style="color: #FFFF00;">Prepara...</div> <!-- Cor amarela -->
             <div class="reaction-time" id="reaction-time"></div>
         </div>
     </div>
@@ -103,38 +103,46 @@
         let timeoutId;
         let isTiming = false;
         let attemptCount = 0;
-        let waitingForSpaceRelease = false; // Nova variável para controlar a liberação da barra de espaço
-        let isYellow = false; // Nova variável para indicar se "Vai!" apareceu em amarelo
+        let currentCondition = 'red'; // Condição atual pode ser 'red' ou 'green'
 
         function startTest() {
             document.getElementById('message').textContent = 'Prepara...';
             document.getElementById('message').style.color = '#FFFF00'; // Cor amarela
             document.getElementById('reaction-time').textContent = '';
-            waitingForSpaceRelease = false; // Resetar a espera pela liberação
-            isYellow = false; // Resetar a condição de cor amarela
 
             const delay = Math.random() * 3000 + 1000; // Entre 1 e 4 segundos
 
-            // Adiciona a exibição do tempo aleatório no console
             console.log(`Tempo aleatório: ${delay} ms`);
 
             timeoutId = setTimeout(() => {
-                isYellow = Math.random() > 0.5; // Determina aleatoriamente se "Vai!" será amarelo
-                const color = isYellow ? '#FFFF00' : '#FF0000'; // Cor aleatória: amarelo ou vermelho
-                document.getElementById('message').textContent = 'Vai!';
-                document.getElementById('message').style.color = color;
+                if (Math.random() > 0.5) {
+                    document.getElementById('message').textContent = 'Vai!';
+                    document.getElementById('message').style.color = '#FF0000'; // Cor vermelha
+                    currentCondition = 'red';
+                } else {
+                    document.getElementById('message').textContent = 'Vai!';
+                    document.getElementById('message').style.color = '#00FF00'; // Cor verde
+                    currentCondition = 'green';
+
+                    setTimeout(() => {
+                        if (currentCondition === 'green' && isTiming) {
+                            updateHistory('1 acerto'); // Se o usuário não fizer nada
+                            isTiming = false;
+                            setTimeout(startTest, 2000); // Reinicia o teste após 2 segundos
+                        }
+                    }, 1000); // Espera 1 segundo antes de reiniciar se for "Vai!" verde
+                }
                 startTime = new Date().getTime();
                 isTiming = true;
-                waitingForSpaceRelease = true; // Indicar que estamos esperando a liberação da barra de espaço
             }, delay);
         }
 
-        function updateHistory(reactionTime) {
+        function updateHistory(message) {
             attemptCount++;
             const historyDiv = document.getElementById('history');
             const newItem = document.createElement('div');
             newItem.className = 'history-item';
-            newItem.textContent = `Tentativa ${attemptCount}: ${reactionTime} ms`;
+            newItem.textContent = `Tentativa ${attemptCount}: ${message}`;
             historyDiv.appendChild(newItem);
         }
 
@@ -142,7 +150,6 @@
             const historyItems = document.querySelectorAll('.history-item');
             let historyText = '';
             historyItems.forEach(item => {
-                // Substitui ": " por "; " e "ms" por " ms;"
                 const formattedText = item.textContent
                     .replace(': ', '; ')
                     .replace(' ms', '; ms;');
@@ -175,29 +182,16 @@
         });
 
         document.addEventListener('keyup', function(event) {
-            if (event.code === 'Space') {
-                if (waitingForSpaceRelease) {
+            if (event.code === 'Space' && isTiming) {
+                if (currentCondition === 'red') {
                     const reactionTime = new Date().getTime() - startTime;
-                    if (isYellow) {
-                        // Se "Vai!" estava em amarelo e o tempo de reação é mais do que 2 segundos
-                        if (reactionTime > 2000) {
-                            document.getElementById('reaction-time').textContent = `Tempo de reação: ${reactionTime} ms (Erro: Tempo maior que 2s)`;
-                            updateHistory('1 erro');
-                            setTimeout(startTest, 2000); // Reinicia o teste após 2 segundos
-                        } else {
-                            document.getElementById('reaction-time').textContent = `Erro: Você liberou a barra de espaço quando "Vai!" estava em amarelo`;
-                            updateHistory('1 erro');
-                            setTimeout(startTest, 2000); // Reinicia o teste após 2 segundos
-                        }
-                    } else if (isTiming) {
-                        // Se "Vai!" estava em vermelho, registrar o tempo de reação
-                        document.getElementById('reaction-time').textContent = `Tempo de reação: ${reactionTime} ms`;
-                        updateHistory(reactionTime);
-                        isTiming = false;
-                        waitingForSpaceRelease = false; // Não estamos mais esperando pela liberação
-                        setTimeout(startTest, 2000); // Reinicia o teste após 2 segundos
-                    }
+                    document.getElementById('reaction-time').textContent = `Tempo de reação: ${reactionTime} ms`;
+                    updateHistory(`${reactionTime} ms`);
+                } else if (currentCondition === 'green') {
+                    updateHistory('1 erro'); // Se o usuário fizer algo quando for "Vai!" verde
                 }
+                isTiming = false;
+                setTimeout(startTest, 2000); // Reinicia o teste após 2 segundos
             }
         });
 
